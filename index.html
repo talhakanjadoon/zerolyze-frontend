@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="description" content="Zerolyze — Free website security scanner for Pakistani businesses. Check SSL, headers, vulnerabilities instantly."/>
+<title>Zerolyze — Website Security Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#060610;
+  --bg2:#0d0d1f;
+  --surface:#111128;
+  --surface2:#181832;
+  --border:rgba(255,255,255,0.06);
+  --border2:rgba(255,255,255,0.12);
+  --accent:#00e5ff;
+  --accent2:#7b5ea7;
+  --green:#00ff88;
+  --amber:#ffb800;
+  --red:#ff3b3b;
+  --text:#e2e2f0;
+  --muted:#6b6b90;
+  --dim:#33334a;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',sans-serif;
+  --r:10px;
+}
+
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;line-height:1.6}
+
+/* scanlines overlay */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,229,255,0.012) 2px,rgba(0,229,255,0.012) 4px);
+  pointer-events:none;z-index:0;
+}
+
+/* radial glow */
+.glow-bg{
+  position:fixed;top:-30vh;left:50%;transform:translateX(-50%);
+  width:80vw;height:60vh;
+  background:radial-gradient(ellipse,rgba(0,229,255,0.04) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+.wrap{position:relative;z-index:1;max-width:780px;margin:0 auto;padding:0 20px 100px}
+
+/* NAV */
+nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:28px 0 0;margin-bottom:72px;
+  border-bottom:1px solid var(--border);padding-bottom:20px;
+}
+
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-box{
+  width:36px;height:36px;background:var(--accent);
+  border-radius:8px;display:flex;align-items:center;justify-content:center;
+}
+.logo-box svg{width:20px;height:20px;fill:var(--bg)}
+.logo-text{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text);letter-spacing:-0.03em}
+.logo-text span{color:var(--accent)}
+
+.nav-right{display:flex;align-items:center;gap:12px}
+.live-dot{
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:11px;color:var(--green);letter-spacing:0.06em;
+}
+.live-dot::before{
+  content:'';width:6px;height:6px;border-radius:50%;background:var(--green);
+  animation:blink 1.4s ease infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+
+/* HERO */
+.hero{text-align:center;margin-bottom:52px;animation:fadeUp .7s ease both}
+
+.hero-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:11px;color:var(--accent);
+  background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.2);
+  border-radius:20px;padding:5px 16px;margin-bottom:24px;letter-spacing:0.08em;
+}
+
+h1{
+  font-family:var(--mono);font-weight:700;
+  font-size:clamp(26px,5.5vw,46px);
+  line-height:1.12;letter-spacing:-0.04em;
+  color:var(--text);margin-bottom:18px;
+}
+h1 .hl{color:var(--accent)}
+
+.hero-sub{
+  font-size:15px;color:var(--muted);max-width:460px;
+  margin:0 auto 0;font-weight:300;
+}
+
+/* SCAN CARD */
+.scan-card{
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:16px;padding:28px;
+  margin-bottom:28px;
+  animation:fadeUp .7s .1s ease both;
+  position:relative;overflow:hidden;
+}
+.scan-card::after{
+  content:'';position:absolute;
+  top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+}
+
+.scan-label{
+  font-family:var(--mono);font-size:10px;
+  color:var(--muted);letter-spacing:0.12em;
+  text-transform:uppercase;margin-bottom:12px;
+}
+
+.scan-row{display:flex;gap:10px}
+
+input[type=text]{
+  flex:1;background:var(--bg2);
+  border:1px solid var(--border2);border-radius:var(--r);
+  color:var(--text);font-family:var(--mono);font-size:13px;
+  padding:0 16px;height:50px;outline:none;
+  transition:border-color .2s;
+}
+input[type=text]::placeholder{color:var(--dim)}
+input[type=text]:focus{border-color:var(--accent)}
+
+.scan-btn{
+  background:var(--accent);color:var(--bg);
+  border:none;border-radius:var(--r);
+  padding:0 26px;height:50px;
+  font-family:var(--mono);font-size:12px;font-weight:700;
+  letter-spacing:0.06em;cursor:pointer;white-space:nowrap;
+  transition:opacity .2s,transform .1s;
+  display:flex;align-items:center;gap:8px;
+}
+.scan-btn:hover{opacity:.9}
+.scan-btn:active{transform:scale(.98)}
+.scan-btn:disabled{background:var(--surface2);color:var(--dim);cursor:not-allowed;transform:none}
+.scan-btn svg{width:16px;height:16px;fill:currentColor}
+
+/* PROGRESS */
+.progress-area{display:none;margin-top:20px}
+
+.prog-steps{
+  font-family:var(--mono);font-size:11px;
+  color:var(--muted);margin-bottom:12px;
+  min-height:18px;
+}
+.prog-steps .cur{color:var(--accent)}
+
+.prog-bar-bg{height:2px;background:var(--border2);border-radius:1px;overflow:hidden}
+.prog-bar-fill{height:100%;background:var(--accent);border-radius:1px;width:0%;transition:width .4s ease}
+
+/* ERROR */
+.error{
+  display:none;margin-top:10px;
+  font-family:var(--mono);font-size:12px;
+  color:var(--red);background:rgba(255,59,59,.08);
+  border:1px solid rgba(255,59,59,.2);
+  border-radius:var(--r);padding:8px 14px;
+}
+
+/* RESULTS */
+.results{display:none;animation:fadeUp .5s ease both}
+
+/* GRADE HEADER */
+.grade-header{
+  display:flex;align-items:center;gap:24px;
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:16px;padding:28px;margin-bottom:14px;
+}
+
+.grade-box{
+  width:88px;height:88px;border-radius:12px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  flex-shrink:0;font-family:var(--mono);font-weight:700;
+}
+.grade-letter{font-size:38px;line-height:1}
+.grade-score{font-size:13px;opacity:.7;margin-top:2px}
+
+.grade-A{background:rgba(0,255,136,.12);color:var(--green);border:1px solid rgba(0,255,136,.25)}
+.grade-B{background:rgba(0,229,255,.12);color:var(--accent);border:1px solid rgba(0,229,255,.25)}
+.grade-C{background:rgba(255,184,0,.12);color:var(--amber);border:1px solid rgba(255,184,0,.25)}
+.grade-D{background:rgba(255,100,0,.12);color:#ff6400;border:1px solid rgba(255,100,0,.25)}
+.grade-F{background:rgba(255,59,59,.12);color:var(--red);border:1px solid rgba(255,59,59,.25)}
+
+.grade-info{flex:1;min-width:0}
+.grade-info h2{font-family:var(--mono);font-size:19px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+.grade-info p{font-size:13px;color:var(--muted);line-height:1.55;margin-bottom:10px}
+
+.meta-chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{
+  font-family:var(--mono);font-size:10px;
+  color:var(--muted);background:var(--surface2);
+  border:1px solid var(--border);border-radius:20px;
+  padding:3px 10px;letter-spacing:.03em;
+}
+
+/* STATS ROW */
+.stats-row{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:10px;margin-bottom:14px;
+}
+.stat-box{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px;text-align:center;
+}
+.stat-n{font-family:var(--mono);font-size:22px;font-weight:700;line-height:1;margin-bottom:4px}
+.stat-l{font-size:11px;color:var(--muted)}
+
+/* CHECKS */
+.checks-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:10px;margin-bottom:14px;
+}
+.check-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r);padding:14px 16px;
+}
+.check-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.check-name{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text)}
+.check-desc{font-size:12px;color:var(--muted);line-height:1.45}
+
+.tag{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.05em;padding:2px 8px;border-radius:4px;text-transform:uppercase}
+.tag-pass{background:rgba(0,255,136,.1);color:var(--green);border:1px solid rgba(0,255,136,.2)}
+.tag-fail{background:rgba(255,59,59,.1);color:var(--red);border:1px solid rgba(255,59,59,.2)}
+.tag-warn{background:rgba(255,184,0,.1);color:var(--amber);border:1px solid rgba(255,184,0,.2)}
+
+/* FINDINGS */
+.findings-card{
+  background:var(--surface);border:1px solid var(--border2);
+  border-radius:16px;padding:24px 26px;margin-bottom:14px;
+}
+.findings-head{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;
+}
+.findings-title{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text)}
+.findings-meta{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+.finding{
+  display:flex;gap:14px;padding:14px 0;
+  border-top:1px solid var(--border);
+}
+.finding:first-of-type{border-top:none}
+.sev-tag{
+  font-family:var(--mono);font-size:9px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 7px;border-radius:4px;flex-shrink:0;margin-top:2px;white-space:nowrap;
+}
+.sev-critical{background:rgba(255,59,59,.15);color:#ff5555;border:1px solid rgba(255,59,59,.3)}
+.sev-high{background:rgba(255,100,0,.12);color:#ff7733;border:1px solid rgba(255,100,0,.25)}
+.sev-medium{background:rgba(255,184,0,.12);color:var(--amber);border:1px solid rgba(255,184,0,.25)}
+.sev-low{background:rgba(0,229,255,.08);color:var(--accent);border:1px solid rgba(0,229,255,.2)}
+
+.finding-body{flex:1;min-width:0}
+.finding-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px}
+.finding-detail{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:4px}
+.finding-fix{
+  font-family:var(--mono);font-size:11px;
+  color:var(--accent);background:rgba(0,229,255,.05);
+  border-left:2px solid var(--accent);
+  padding:6px 10px;border-radius:0 4px 4px 0;
+  margin-top:6px;line-height:1.5;
+}
+
+/* EXPOSED FILES */
+.exposed-card{
+  background:rgba(255,59,59,.05);border:1px solid rgba(255,59,59,.2);
+  border-radius:var(--r);padding:14px 16px;margin-bottom:14px;
+}
+.exposed-title{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--red);margin-bottom:8px}
+.exposed-file{font-family:var(--mono);font-size:12px;color:var(--text);padding:3px 0}
+
+/* CTA */
+.cta-card{
+  background:var(--surface);border:1px solid rgba(0,229,255,.2);
+  border-radius:16px;padding:28px;text-align:center;
+  position:relative;overflow:hidden;margin-top:14px;
+}
+.cta-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(0,229,255,.05),transparent 65%);
+  pointer-events:none;
+}
+.cta-card h3{font-family:var(--mono);font-size:18px;font-weight:700;margin-bottom:8px;letter-spacing:-.02em}
+.cta-card p{font-size:14px;color:var(--muted);margin-bottom:22px;line-height:1.6}
+
+.plans{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
+.plan{
+  background:var(--surface2);border:1px solid var(--border2);
+  border-radius:var(--r);padding:12px 18px;text-align:left;min-width:155px;
+}
+.plan.best{border-color:rgba(0,229,255,.4);background:rgba(0,229,255,.05)}
+.plan-name{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+.plan.best .plan-name{color:var(--accent)}
+.plan-price{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--text)}
+.plan.best .plan-price{color:var(--accent)}
+.plan-sub{font-size:11px;color:var(--dim);margin-top:2px}
+
+.cta-btn{
+  background:var(--accent);color:var(--bg);border:none;
+  border-radius:var(--r);padding:13px 32px;
+  font-family:var(--mono);font-size:12px;font-weight:700;
+  letter-spacing:.06em;cursor:pointer;
+  transition:opacity .2s,transform .1s;
+}
+.cta-btn:hover{opacity:.9}
+.cta-btn:active{transform:scale(.98)}
+
+/* FOOTER */
+footer{
+  text-align:center;padding-top:56px;
+  font-family:var(--mono);font-size:10px;
+  color:var(--dim);letter-spacing:.1em;
+}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+/* RESPONSIVE */
+@media(max-width:520px){
+  .scan-row{flex-direction:column}
+  .scan-btn{width:100%;justify-content:center}
+  .grade-header{flex-direction:column;text-align:center}
+  .meta-chips{justify-content:center}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .plans{flex-direction:column;align-items:center}
+  .plan{width:100%;max-width:260px}
+}
+</style>
+</head>
+<body>
+<div class="glow-bg"></div>
+<div class="wrap">
+
+  <nav>
+    <a class="logo" href="#">
+      <div class="logo-box">
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+      </div>
+      <span class="logo-text">Zero<span>lyze</span></span>
+    </a>
+    <div class="nav-right">
+      <span class="live-dot">LIVE SCANNER</span>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-tag">Pakistan's first real-time security scanner</div>
+    <h1>Is your website<br/><span class="hl">safe from hackers?</span></h1>
+    <p class="hero-sub">Real security audit in 30 seconds — SSL, headers, exposed files, and more. Free forever.</p>
+  </div>
+
+  <div class="scan-card">
+    <div class="scan-label">// paste your website url below</div>
+    <div class="scan-row">
+      <input type="text" id="urlInput" placeholder="https://yourbusiness.com.pk" autocomplete="off"/>
+      <button class="scan-btn" id="scanBtn" onclick="startScan()">
+        <svg viewBox="0 0 24 24"><path d="M11 5a7 7 0 100 14A7 7 0 0011 5zm8.5 13.1l-3.7-3.7"/></svg>
+        SCAN NOW
+      </button>
+    </div>
+    <div class="error" id="errBox"></div>
+    <div class="progress-area" id="progArea">
+      <div class="prog-steps" id="progSteps"></div>
+      <div class="prog-bar-bg"><div class="prog-bar-fill" id="progFill"></div></div>
+    </div>
+  </div>
+
+  <div class="results" id="results">
+
+    <div class="stats-row" id="statsRow"></div>
+
+    <div class="grade-header" id="gradeHeader">
+      <div class="grade-box" id="gradeBox">
+        <span class="grade-letter" id="gradeLetter">—</span>
+        <span class="grade-score" id="gradeScore"></span>
+      </div>
+      <div class="grade-info">
+        <h2 id="gradeTitle"></h2>
+        <p id="gradeDesc"></p>
+        <div class="meta-chips">
+          <span class="chip" id="chipDomain"></span>
+          <span class="chip" id="chipTime"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="checks-grid" id="checksGrid"></div>
+
+    <div class="exposed-card" id="exposedCard" style="display:none">
+      <div class="exposed-title">⚠ Sensitive files publicly accessible</div>
+      <div id="exposedList"></div>
+    </div>
+
+    <div class="findings-card">
+      <div class="findings-head">
+        <span class="findings-title">Security findings</span>
+        <span class="findings-meta" id="findingsMeta"></span>
+      </div>
+      <div id="findingsList"></div>
+    </div>
+
+    <div class="cta-card">
+      <h3>Get full protection</h3>
+      <p>Detailed fix guides, weekly automated scans, WhatsApp alerts, and direct support from our security team.</p>
+      <div class="plans">
+        <div class="plan">
+          <div class="plan-name">Starter</div>
+          <div class="plan-price">Rs. 2,999<span style="font-size:12px;font-weight:400;color:var(--dim)">/mo</span></div>
+          <div class="plan-sub">Monthly scans + PDF report</div>
+        </div>
+        <div class="plan best">
+          <div class="plan-name">Pro — most popular</div>
+          <div class="plan-price">Rs. 6,999<span style="font-size:12px;font-weight:400">/mo</span></div>
+          <div class="plan-sub">Weekly + WhatsApp alerts</div>
+        </div>
+        <div class="plan">
+          <div class="plan-name">Agency</div>
+          <div class="plan-price">Rs. 14,999<span style="font-size:12px;font-weight:400;color:var(--dim)">/mo</span></div>
+          <div class="plan-sub">Unlimited sites + dashboard</div>
+        </div>
+      </div>
+      <button class="cta-btn" onclick="window.open('https://wa.me/923000000000?text=Hi, I want a full Zerolyze security audit for my website','_blank')">
+        CONTACT ON WHATSAPP →
+      </button>
+    </div>
+
+  </div>
+
+  <footer>ZEROLYZE © 2026 — MADE IN PAKISTAN — ZERO THREATS, TOTAL VISIBILITY</footer>
+</div>
+
+<script>
+// ── CONFIG ─────────────────────────────────────────────────────────────────
+// Change this to your Railway backend URL after deployment
+const API_BASE = window.location.hostname === 'localhost'
+  ? 'http://localhost:3001'
+  : 'https://ZEROLYZE-BACKEND-URL.vercel.app'; // <-- paste your backend Vercel URL here
+
+// ── STEPS ──────────────────────────────────────────────────────────────────
+const STEPS = [
+  'Resolving domain...',
+  'Checking SSL certificate...',
+  'Testing HTTPS redirect...',
+  'Fetching security headers...',
+  'Scanning cookie configuration...',
+  'Checking for exposed files...',
+  'Analyzing content policy...',
+  'Building security report...',
+];
+
+// ── SCAN ───────────────────────────────────────────────────────────────────
+async function startScan() {
+  const raw = document.getElementById('urlInput').value.trim();
+  const err = document.getElementById('errBox');
+  err.style.display = 'none';
+  document.getElementById('results').style.display = 'none';
+
+  if (!raw) { showErr('Please enter a URL.'); return; }
+  let url = raw;
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  try { new URL(url); } catch { showErr('Invalid URL. Try: https://yoursite.com.pk'); return; }
+
+  document.getElementById('scanBtn').disabled = true;
+  runProgress();
+
+  try {
+    const res = await fetch(`${API_BASE}/api/scan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || 'Scan failed.');
+    }
+
+    const data = await res.json();
+    stopProgress();
+    renderResults(data);
+
+  } catch (e) {
+    stopProgress();
+    showErr(e.message || 'Could not reach the scanner. Please try again.');
+  } finally {
+    document.getElementById('scanBtn').disabled = false;
+  }
+}
+
+// ── PROGRESS ───────────────────────────────────────────────────────────────
+let progTimer = null;
+let progStep = 0;
+
+function runProgress() {
+  document.getElementById('progArea').style.display = 'block';
+  progStep = 0;
+  progTimer = setInterval(() => {
+    if (progStep < STEPS.length) {
+      document.getElementById('progSteps').innerHTML =
+        `<span class="cur">▶ ${STEPS[progStep]}</span>`;
+      document.getElementById('progFill').style.width =
+        Math.round(((progStep + 1) / STEPS.length) * 90) + '%';
+      progStep++;
+    }
+  }, 500);
+}
+
+function stopProgress() {
+  clearInterval(progTimer);
+  document.getElementById('progFill').style.width = '100%';
+  setTimeout(() => {
+    document.getElementById('progArea').style.display = 'none';
+  }, 300);
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function renderResults(d) {
+  const pass = d.passCount;
+  const fail = d.failCount;
+  const warn = Object.values(d.checks).filter((v, i) => {
+    const keys = Object.keys(d.checks);
+    return false;
+  }).length;
+
+  // Stats
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-box"><div class="stat-n" style="color:var(--green)">${pass}</div><div class="stat-l">Passed</div></div>
+    <div class="stat-box"><div class="stat-n" style="color:var(--red)">${fail}</div><div class="stat-l">Failed</div></div>
+    <div class="stat-box"><div class="stat-n" style="color:var(--accent)">${d.score}</div><div class="stat-l">Score</div></div>
+    <div class="stat-box"><div class="stat-n" style="color:var(--amber)">${d.findings.length}</div><div class="stat-l">Issues</div></div>
+  `;
+
+  // Grade
+  const gradeBox = document.getElementById('gradeBox');
+  gradeBox.className = 'grade-box grade-' + d.grade;
+  document.getElementById('gradeLetter').textContent = d.grade;
+  document.getElementById('gradeScore').textContent = d.score + '/100';
+
+  const titles = {A:'Strong security posture',B:'Good, minor improvements needed',C:'Moderate risk detected',D:'High risk — action needed',F:'Critical vulnerabilities found'};
+  const descs = {
+    A:'Your website follows most security best practices. Keep monitoring for new threats.',
+    B:'A few security headers or configurations are missing. Fix them to reach an A grade.',
+    C:`${fail} checks failed. Attackers could exploit these gaps. Prioritize the findings below.`,
+    D:`${fail} critical checks failed. Your users and data are at significant risk right now.`,
+    F:`Severe vulnerabilities detected. Your site is actively exploitable. Act immediately.`,
+  };
+  document.getElementById('gradeTitle').textContent = titles[d.grade];
+  document.getElementById('gradeDesc').textContent = descs[d.grade];
+  document.getElementById('chipDomain').textContent = d.domain;
+  document.getElementById('chipTime').textContent = 'Scanned ' + new Date(d.scannedAt).toLocaleTimeString();
+
+  // Checks grid
+  const checkDefs = [
+    {key:'ssl',        label:'SSL Certificate',        desc: d.ssl.hasSSL ? `Valid · expires ${d.ssl.expiresAt || '?'} · ${d.ssl.daysLeft ?? '?'} days left` : 'No SSL detected'},
+    {key:'sslValid',   label:'SSL Validity',           desc: d.ssl.valid ? 'Certificate trusted by browsers' : 'Certificate is expired or self-signed'},
+    {key:'httpsRedirect',label:'HTTPS Redirect',       desc: d.checks.httpsRedirect ? 'HTTP → HTTPS redirect active' : 'No redirect from HTTP to HTTPS'},
+    {key:'hsts',       label:'HSTS Header',            desc: d.checks.hsts ? 'Strict-Transport-Security present' : 'Header missing'},
+    {key:'csp',        label:'Content-Security-Policy',desc: d.checks.csp ? 'CSP header configured' : 'No CSP header found'},
+    {key:'xframe',     label:'X-Frame-Options',        desc: d.checks.xframe ? 'Clickjacking protection active' : 'Header missing — clickjacking risk'},
+    {key:'xContentType',label:'X-Content-Type-Options',desc: d.checks.xContentType ? 'MIME sniffing disabled' : 'Header missing'},
+    {key:'referrer',   label:'Referrer-Policy',        desc: d.checks.referrer ? 'Referrer policy configured' : 'No referrer policy set'},
+    {key:'permissions',label:'Permissions-Policy',     desc: d.checks.permissions ? 'Feature policy configured' : 'No permissions policy'},
+    {key:'noServerLeak',label:'Server Header',         desc: d.checks.noServerLeak ? 'Server info not exposed' : `Exposed: ${d.headerInfo.server || d.headerInfo.poweredBy || 'unknown'}`},
+    {key:'noExposedFiles',label:'Exposed Files',       desc: d.checks.noExposedFiles ? 'No sensitive files found' : `${d.exposedFiles.length} file(s) exposed`},
+  ];
+
+  document.getElementById('checksGrid').innerHTML = checkDefs.map(c => {
+    const val = d.checks[c.key];
+    const tagClass = val ? 'tag-pass' : 'tag-fail';
+    const tagText = val ? 'Pass' : 'Fail';
+    return `<div class="check-card">
+      <div class="check-top">
+        <span class="check-name">${c.label}</span>
+        <span class="tag ${tagClass}">${tagText}</span>
+      </div>
+      <div class="check-desc">${c.desc}</div>
+    </div>`;
+  }).join('');
+
+  // Exposed files
+  if (d.exposedFiles.length > 0) {
+    document.getElementById('exposedCard').style.display = 'block';
+    document.getElementById('exposedList').innerHTML =
+      d.exposedFiles.map(f => `<div class="exposed-file">⛔ ${f}</div>`).join('');
+  } else {
+    document.getElementById('exposedCard').style.display = 'none';
+  }
+
+  // Findings
+  document.getElementById('findingsMeta').textContent = d.findings.length + ' issue' + (d.findings.length !== 1 ? 's' : '') + ' found';
+  if (d.findings.length === 0) {
+    document.getElementById('findingsList').innerHTML =
+      '<div style="padding:16px 0;font-size:13px;color:var(--muted)">✓ No significant vulnerabilities found. Great work!</div>';
+  } else {
+    document.getElementById('findingsList').innerHTML = d.findings.map(f => `
+      <div class="finding">
+        <span class="sev-tag sev-${f.severity}">${f.severity}</span>
+        <div class="finding-body">
+          <div class="finding-title">${f.title}</div>
+          <div class="finding-detail">${f.detail}</div>
+          <div class="finding-fix">Fix → ${f.fix}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function showErr(msg) {
+  const e = document.getElementById('errBox');
+  e.textContent = '⚠ ' + msg;
+  e.style.display = 'block';
+  document.getElementById('scanBtn').disabled = false;
+}
+
+// Allow Enter key to trigger scan
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startScan();
+});
+</script>
+</body>
+</html>
